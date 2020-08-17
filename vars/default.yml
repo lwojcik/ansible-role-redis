@@ -1,0 +1,2 @@
+redis_password: foobared
+redis_flushall_command_name: FOO_FLUSHALL

@@ -1,0 +1,54 @@
+---
+- name: Ensure Redis is installed
+  apt:
+    name: redis
+    state: present
+
+- name: Configure Redis to be managed by systemd
+  lineinfile:
+    dest: /etc/redis/redis.conf
+    regexp: "^supervised"
+    line: "supervised systemd"
+    state: present
+  register: redis_config
+
+- name: Ensure Redis is bound to localhost
+  lineinfile:
+    dest: /etc/redis/redis.conf
+    regexp: "^bind"
+    line: "bind 127.0.0.1"
+    state: present
+  register: redis_config
+
+- name: Ensure Redis password is set
+  lineinfile:
+    dest: /etc/redis/redis.conf
+    regexp: "^requirepass"
+    line: "requirepass {{ redis_password }}"
+    state: present
+  register: redis_config
+
+- name: Ensure dangerous commands are renamed
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  with_items:
+    - regexp: "^rename-command SHUTDOWN"
+      line: 'rename-command SHUTDOWN ""'
+    - regexp: "^rename-command CONFIG"
+      line: 'rename-command CONFIG ""'
+    - regexp: "^rename-command FLUSHDB"
+      line: 'rename-command FLUSHDB ""'
+    - regexp: "^rename-command DEBUG"
+      line: 'rename-command DEBUG ""'
+    - regexp: "^rename-command FLUSHALL"
+      line: 'rename-command FLUSHALL {{ redis_flushall_command_name }}'
+  register: redis_config
+
+- name: Reload Redis if config was changed
+  service:
+    name: redis
+    state: reloaded
+  when: redis_config.changed
