@@ -10,7 +10,8 @@
     regexp: "^supervised"
     line: "supervised systemd"
     state: present
-  register: redis_config
+  become: true
+  notify: Restart Redis
 
 - name: Ensure Redis is bound to localhost
   lineinfile:
@@ -18,7 +19,8 @@
     regexp: "^bind"
     line: "bind 127.0.0.1"
     state: present
-  register: redis_config
+  become: true
+  notify: Restart Redis
 
 - name: Ensure Redis password is set
   lineinfile:
@@ -26,11 +28,12 @@
     regexp: "^requirepass"
     line: "requirepass {{ redis_password }}"
     state: present
-  register: redis_config
+  become: true
+  notify: Restart Redis
 
 - name: Ensure dangerous commands are renamed
   lineinfile:
-    dest: /etc/ssh/sshd_config
+    dest: /etc/redis/redis.conf
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
     state: present
@@ -45,10 +48,5 @@
       line: 'rename-command DEBUG ""'
     - regexp: "^rename-command FLUSHALL"
       line: 'rename-command FLUSHALL {{ redis_flushall_command_name }}'
-  register: redis_config
-
-- name: Reload Redis if config was changed
-  service:
-    name: redis
-    state: reloaded
-  when: redis_config.changed
+  become: true
+  notify: Restart Redis
