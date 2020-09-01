@@ -3,6 +3,7 @@
   apt:
     name: redis
     state: present
+  become: true
 
 - name: Configure Redis to be managed by systemd
   lineinfile:
